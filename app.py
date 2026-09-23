@@ -44,14 +44,20 @@ def process_docs(files):
     """Process uploaded documents"""
     try:
         with st.status("Processing documents...") as status:
-            # Save uploaded files
+
+            # Save uploaded files while preserving original filenames
             temps = []
+            temp_dir = tempfile.mkdtemp()
+
             for f in files:
-                tmp = tempfile.NamedTemporaryFile(delete=False, suffix=f".{f.name.split('.')[-1]}")
-                tmp.write(f.read())
-                tmp.close()
-                temps.append(tmp.name)
-            
+                safe_filename = os.path.basename(f.name)
+                temp_path = os.path.join(temp_dir, safe_filename)
+
+                with open(temp_path, "wb") as tmp:
+                    tmp.write(f.getbuffer())
+
+                temps.append(temp_path)
+                        
             # Process
             processor = DocumentProcessor(temps)
             docs = processor.process()
@@ -73,12 +79,17 @@ def process_docs(files):
             retriever = SemanticRetriever(vs)
             st.session_state.chatbot = SupportChatbot(vs, retriever)
             
-            # Cleanup
+           # Cleanup
             for tmp in temps:
                 try:
                     os.unlink(tmp)
                 except:
                     pass
+
+            try:
+                os.rmdir(temp_dir)
+            except:
+                pass
             
             status.update(label="Ready!", state="complete")
             time.sleep(0.5)
@@ -182,14 +193,22 @@ if st.session_state.chatbot:
                 # Show answer
                 st.markdown(result['answer'])
                 
-                # Show confidence
+        
+                # Show evidence strength
                 c = result['confidence']
-                if c >= 0.7:
-                    st.caption(f" {c:.0%}")
+
+                if (
+                    "cannot find" in result["answer"].lower()
+                    or "couldn't find" in result["answer"].lower()
+                    or "not found" in result["answer"].lower()
+                ):
+                    st.caption("🔴 Insufficient evidence")
+                elif c >= 0.7:
+                    st.caption("🟢 Strong evidence")
                 elif c >= 0.5:
-                    st.caption(f" {c:.0%}")
+                    st.caption("🟡 Moderate evidence")
                 else:
-                    st.caption(f" {c:.0%}")
+                    st.caption("🔴 Weak evidence")
                 
                 # Sources
                 if result.get('sources'):

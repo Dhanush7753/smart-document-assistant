@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class SupportChatbot:
     """
     Main chatbot class for customer support using RAG and HuggingFace LLM.
-    Uses the 'mistralai/Mistral-7B-Instruct-v0.2' model explicitly.
+    Uses the 'openai/gpt-oss-120b' model via Hugging Face Inference Providers..
     """
 
     # OPTIMIZED PROMPT FOR CONCISE ANSWERS
@@ -37,8 +37,8 @@ class SupportChatbot:
         self.retriever = retriever
         self.memory = ConversationBufferMemory(return_messages=True)
 
-        # Hardcoded Mistral model ID
-        self.model_id = "mistralai/Mistral-7B-Instruct-v0.2"
+        # Hardcoded 
+        self.model_id = "openai/gpt-oss-120b"
 
         # Get API token
         api_token = os.getenv('HUGGINGFACEHUB_API_TOKEN')
@@ -67,7 +67,7 @@ class SupportChatbot:
 
             # Wrap with ChatHuggingFace for conversation handling
             self.llm = ChatHuggingFace(llm=llm_endpoint)
-            logger.info("✅ Using ChatHuggingFace wrapper for Mistral conversational model")
+            logger.info("✅ Using ChatHuggingFace wrapper for GPT-OSS conversational model")
 
         except Exception as e:
             logger.error(f"❌ Failed to initialize HuggingFace LLM: {e}")
@@ -116,7 +116,7 @@ class SupportChatbot:
                 question=question
             )
 
-            logger.info("Calling LLM with Mistral model...")
+            logger.info("Calling LLM with GPT-OSS model...")
             logger.info(f"Context length: {len(context_limited)} chars")
             logger.info(f"Prompt preview: {prompt[:300]}...")
 
@@ -132,6 +132,16 @@ class SupportChatbot:
 
             answer = answer.strip()
             logger.info(f"✅ LLM response: {answer[:200]}...")
+
+            if any(phrase in answer.lower() for phrase in [
+                "i cannot find",
+                "i couldn't find",
+                "cannot find this information",
+                "couldn't find this information",
+                "not found in the document",
+                "not found in the documents"
+            ]):
+                confidence = 0.0
 
             if not answer or len(answer) < 5:
                 logger.warning("Response too short or empty — using fallback")
@@ -214,8 +224,5 @@ class SupportChatbot:
                 weighted_avg = min(weighted_avg * 1.5, 0.95)
             elif top_3_avg < 2.5:  # Good match
                 weighted_avg = min(weighted_avg * 1.3, 0.90)
-        
-        # Ensure minimum confidence for any match
-        weighted_avg = max(weighted_avg, 0.50)
         
         return weighted_avg

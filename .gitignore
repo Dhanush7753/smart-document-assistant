@@ -1,1 +1,25 @@
+# Secrets
 .env
+.env.*
+
+# Virtual environments
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Generated vector database
+vector_db/
+
+# Logs
+*.log

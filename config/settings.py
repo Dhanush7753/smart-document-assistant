@@ -21,7 +21,7 @@ class Config:
     )
     LLM_MODEL: str = os.getenv(
         "LLM_MODEL", 
-        "mistralai/Mistral-7B-Instruct-v0.2"
+        "openai/gpt-oss-120b"
     )
     
     # ===== Vector Store Settings =====
